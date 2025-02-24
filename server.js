@@ -5,7 +5,7 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const authenticateJWT = require("./middlewares/authmiddleware");
 const authRoutes = require("./routes/authRoutes");
-
+require("dotenv").config();
 const productRoutes = require("./routes/productRoutes");
 
 const app = express();
@@ -58,5 +58,6 @@ mongoose.connection.on("error", (err) => console.error("MongoDB connection error
 app.use("/",productRoutes) //USE THIS CODE WHEN NOT MAKING USE OF AUTH TOKEN
 // Mounting all product routes under /api
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// const PORT = 5000;
+app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
+
