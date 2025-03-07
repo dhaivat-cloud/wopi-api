@@ -1,6 +1,6 @@
-# Middleware API
+# WOPI-API
 
-This repository contains the middleware API responsible for handling authentication, authorization, and communication between the backend services.
+This repository contains the API that responsible for handling authentication, authorization, and communication between the WOPI frontend and the database services.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -21,10 +21,11 @@ This middleware API serves as an intermediary between the frontend and backend s
 - User management (login, register, logout)
 - Middleware for protected routes
 - Secure API communication
+- Mongoose for Connection with the Database
 
 ## Tech Stack
 - Node.js
-- Express.js
+- Express.js with Mongoose
 - JSON Web Tokens (JWT)
 - dotenv for environment variable management
 - Swagger for API documentation
@@ -32,7 +33,7 @@ This middleware API serves as an intermediary between the frontend and backend s
 ## Setup and Installation
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-repo/middleware-api.git
+   git clone https://github.com/dhaivat-cloud/wopi-api.git
    ```
 2. Navigate to the project directory:
    ```sh
@@ -56,11 +57,11 @@ Replace `your_secret_key_here` with a strong secret key.
 ## Running the Server
 To start the server, run:
 ```sh
-npm start
+npm run dev
 ```
 Or for development with nodemon:
 ```sh
-npm run dev
+nodemon server.js 
 ```
 The API will be available at `http://localhost:5000`.
 
