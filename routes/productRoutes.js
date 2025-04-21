@@ -19,84 +19,48 @@ const router = express.Router();
  */
 router.post("/initialize-products", async (req, res) => {
     try {
-        const existingProducts = await Product.find();
-        if (existingProducts.length > 0) {
-            return res.status(400).json({ message: "Products already exist in DB" });
+        const existingTaxSorted = await Product.findOne({ productname: "tax-sorted" });
+        if (existingTaxSorted) {
+            return res.status(400).json({ 
+                message: "'tax-sorted' product already exists in DB",
+                existingProductId: existingTaxSorted._id 
+            });
         }
-
         const initialProducts = [
-            {
-                productid: 1,
-                productname: "sorted",
-                groups: [
-                    {
-                        groupid: 1,
-                        groupname: "Addresses",
-                        labels: [
-                            { label: "Address 1", description: "Description for Option 1" },
-                            { label: "Auditor's Postal Address", description: "Description for Option 2" },
-                            { label: "Firm Address", description: "Description for Option 3" },
-                        ],
-                    },
-                    {
-                        groupid: 2,
-                        groupname: "Dates",
-                        labels: [
-                            { label: "${DATE_IN_WORDS}", description: "Dates in Words Without Comma" },
-                            { label: "${DATE_WITH_SLASH}", description: "Date with slash" },
-                        ],
-                    },
-                ],
-            },
             {
                 productid: 2,
                 productname: "tax-sorted",
                 groups: [
                     {
                         groupid: 1,
-                        groupname: "Addresses",
-                        labels: [
-                            { label: "Address 1", description: "Description for Option 1" },
-                            { label: "Auditor's Postal Address", description: "Description for Option 2" },
-                            { label: "Firm Address", description: "Description for Option 3" },
-                        ],
-                    },
-                    {
-                        groupid: 2,
-                        groupname: "Dates",
-                        labels: [
-                            { label: "${DATE_IN_WORDS}", description: "Dates in Words Without Comma" },
-                            { label: "${DATE_WITH_SLASH}", description: "Date with slash" },
-                            { label: "${END_DATE}", description: "End Date" },
-                            { label: "${FY}", description: "FY" },
-                            { label: "${YEAR_END_DATE_IN_WORDS}", description: "Year End Date in Words" },
-                        ],
-                    },
-                ],
-            },
-            {
-                productid: 3,
-                productname: "auditomation",
-                groups: [
-                    {
-                        groupid: 1,
-                        groupname: "Addresses",
-                        labels: [
-                            { label: "Address 1", description: "Description for Option 1" },
-                            { label: "Auditor's Postal Address", description: "Description for Option 2" },
-                            { label: "Firm Address", description: "Description for Option 3" },
-                        ],
-                    },
-                    {
-                        groupid: 2,
-                        groupname: "Dates",
-                        labels: [
-                            { label: "${DATE_IN_WORDS}", description: "Dates in Words Without Comma" },
-                            { label: "${DATE_WITH_SLASH}", description: "Date with slash" },
-                        ],
-                    },
-                ],
-            },
+                        groupname: "Workpaper Template Wise",
+                        subgroups: [
+                            {
+                                subgroupid: 1,
+                                subgroupname: "Generic",
+                                labels: [
+                                    {
+                                        label: "${ACCOUNT_NAME}",
+                                        description: "This placeholder will bring the account name of the entity",
+                                        displayName: "Account Name"
+                                    },
+                                    {
+                                        label: "${CLIENT_NAME}",
+                                        description: "This placeholder will bring the client name",
+                                        displayName: "Client Name"
+                                    },
+                                    {
+                                        label: "${CLOSING_BALANCE}",
+                                        description: "This placeholder will bring the closing balance of the account",
+                                        displayName: "Closing Account Balance"
+                                    },
+
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         ];
 
         await Product.insertMany(initialProducts);
@@ -110,8 +74,8 @@ router.post("/initialize-products", async (req, res) => {
  * @swagger
  * /products:
  *   get:
- *     summary: Display all 3 products.
- *     description: Retrieves all product information and the groups that are existing as part of those products in the database.
+ *     summary: Display all products
+ *     description: Retrieves all product information with groups, subgroups and labels
  *     responses:
  *       200:
  *         description: List of products
@@ -131,8 +95,8 @@ router.get("/products", async (req, res) => {
  * @swagger
  * /products/{productname}:
  *   get:
- *     summary: Get all the placeholders as a part of a specific product
- *     description: Fetch all the placeholders for a product based on its name.
+ *     summary: Get a specific product with all its groups, subgroups and labels
+ *     description: Fetch complete details for a product based on its name.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -162,8 +126,8 @@ router.get("/products/:productname", async (req, res) => {
  * @swagger
  * /products/{productname}/groups:
  *   post:
- *     summary: Add or update a group for a product
- *     description: Adds a new group with labels to an existing product. If the group already exists, it updates the group by adding new labels without creating duplicates.
+ *     summary: Add a new group to a product
+ *     description: Adds a new group with optional subgroups to an existing product.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -180,24 +144,28 @@ router.get("/products/:productname", async (req, res) => {
  *             properties:
  *               groupname:
  *                 type: string
- *                 example: "GroupName"
- *               labels:
+ *                 example: "New Group"
+ *               subgroups:
  *                 type: array
  *                 items:
  *                   type: object
  *                   properties:
- *                     label:
+ *                     subgroupname:
  *                       type: string
- *                       example: "${LABEL_NAME}"
- *                     description:
- *                       type: string
- *                       example: "Description of the label"
- *                     displayName:
- *                       type: string
- *                       example: "Label Display Name"
+ *                     labels:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           displayName:
+ *                             type: string
  *     responses:
  *       201:
- *         description: Group updated successfully (existing group found and labels added)
+ *         description: Group added successfully
  *       400:
  *         description: Invalid request body
  *       404:
@@ -205,51 +173,39 @@ router.get("/products/:productname", async (req, res) => {
  *       500:
  *         description: Server error
  */
-
 router.post("/products/:productname/groups", async (req, res) => {
     try {
-        const { groupname, labels } = req.body;
+        const { groupname, subgroups = [] } = req.body;
         const product = await Product.findOne({ productname: req.params.productname });
 
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        
-        let existingGroup = product.groups.find(group => group.groupname === groupname);
+        const newGroup = {
+            groupid: product.groups.length > 0 ? Math.max(...product.groups.map(g => g.groupid)) + 1 : 1,
+            groupname,
+            subgroups: subgroups.map((subgroup, index) => ({
+                subgroupid: index + 1,
+                subgroupname: subgroup.subgroupname,
+                labels: subgroup.labels || []
+            }))
+        };
 
-        if (existingGroup) {
-        
-            const existingLabels = new Set(existingGroup.labels.map(label => label.label));
-            const newLabels = labels.filter(label => !existingLabels.has(label.label));
-
-            existingGroup.labels.push(...newLabels);
-        } else {
-        
-            const newGroup = {
-                groupid: product.groups.length + 1,
-                groupname,
-                labels,
-            };
-
-            product.groups.push(newGroup);
-        }
-
+        product.groups.push(newGroup);
         await product.save();
-        res.status(201).json({ message: "Group updated successfully", product });
-
+        res.status(201).json({ message: "Group added successfully", group: newGroup });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-
 /**
  * @swagger
- * /products/{productname}/groups/{groupname}/labels:
+ * /products/{productname}/groups/{groupname}/subgroups:
  *   post:
- *     summary: Add a new label to an existing group
- *     description: Adds a new label to an existing group in a product.
+ *     summary: Add a new subgroup to a group
+ *     description: Adds a new subgroup with optional labels to an existing group.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -270,15 +226,23 @@ router.post("/products/:productname/groups", async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               label:
+ *               subgroupname:
  *                 type: string
- *                 example: "LABEL_NAME_SAMPLE"
- *               description:
- *                 type: string
- *                 example: "LABEL_DESCRIPTION_SAMPLEl"
+ *                 example: "New Subgroup"
+ *               labels:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     label:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     displayName:
+ *                       type: string
  *     responses:
  *       201:
- *         description: Label added successfully
+ *         description: Subgroup added successfully
  *       400:
  *         description: Invalid request body
  *       404:
@@ -286,29 +250,35 @@ router.post("/products/:productname/groups", async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post("/products/:productname/groups/:groupname/labels", async (req, res) => {
+router.post("/products/:productname/groups/:groupname/subgroups", async (req, res) => {
     try {
-        const { label, description, displayName } = req.body; 
+        const { subgroupname, labels = [] } = req.body;
         const product = await Product.findOne({ productname: req.params.productname });
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const group = product.groups.find((g) => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
         if (!group) return res.status(404).json({ message: "Group not found" });
 
-        const newLabel = { label, description, displayName }; 
-        group.labels.push(newLabel);
+        const newSubgroup = {
+            subgroupid: group.subgroups.length > 0 ? Math.max(...group.subgroups.map(s => s.subgroupid)) + 1 : 1,
+            subgroupname,
+            labels
+        };
+
+        group.subgroups.push(newSubgroup);
         await product.save();
-        res.status(201).json(newLabel);
+        res.status(201).json({ message: "Subgroup added successfully", subgroup: newSubgroup });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 /**
  * @swagger
- * /products/{productname}/groups/{groupname}:
- *   put:
- *     summary: Update the name of a group
- *     description: Update the name of a specific group within a product.
+ * /products/{productname}/groups/{groupname}/subgroups/{subgroupname}/labels:
+ *   post:
+ *     summary: Add a new label to a subgroup
+ *     description: Adds a new label to an existing subgroup.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -321,7 +291,79 @@ router.post("/products/:productname/groups/:groupname/labels", async (req, res) 
  *         required: true
  *         schema:
  *           type: string
- *         description: Current name of the group to update
+ *         description: Name of the group
+ *       - in: path
+ *         name: subgroupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the subgroup
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *                 example: "LABEL_NAME"
+ *               description:
+ *                 type: string
+ *                 example: "Label description"
+ *               displayName:
+ *                 type: string
+ *                 example: "Label Display Name"
+ *     responses:
+ *       201:
+ *         description: Label added successfully
+ *       400:
+ *         description: Invalid request body
+ *       404:
+ *         description: Product, group or subgroup not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/products/:productname/groups/:groupname/subgroups/:subgroupname/labels", async (req, res) => {
+    try {
+        const { label, description, displayName } = req.body;
+        const product = await Product.findOne({ productname: req.params.productname });
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        if (!group) return res.status(404).json({ message: "Group not found" });
+
+        const subgroup = group.subgroups.find(s => s.subgroupname.toLowerCase() === req.params.subgroupname.toLowerCase());
+        if (!subgroup) return res.status(404).json({ message: "Subgroup not found" });
+
+        const newLabel = { label, description, displayName };
+        subgroup.labels.push(newLabel);
+        await product.save();
+        res.status(201).json(newLabel);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /products/{productname}/groups/{groupname}:
+ *   put:
+ *     summary: Update a group's name
+ *     description: Updates the name of an existing group.
+ *     parameters:
+ *       - in: path
+ *         name: productname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the product
+ *       - in: path
+ *         name: groupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Current name of the group
  *     requestBody:
  *       required: true
  *       content:
@@ -345,31 +387,28 @@ router.post("/products/:productname/groups/:groupname/labels", async (req, res) 
 router.put("/products/:productname/groups/:groupname", async (req, res) => {
     try {
         const { newGroupName } = req.body;
-        if (!newGroupName) {
-            return res.status(400).json({ message: "newGroupName is required" });
-        }
+        if (!newGroupName) return res.status(400).json({ message: "newGroupName is required" });
 
         const product = await Product.findOne({ productname: req.params.productname });
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const group = product.groups.find((g) => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
         if (!group) return res.status(404).json({ message: "Group not found" });
 
-        
         group.groupname = newGroupName;
         await product.save();
-
         res.status(200).json({ message: "Group name updated successfully", product });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 /**
  * @swagger
- * /products/{productname}/groups/{groupname}/labels:
- *   post:
- *     summary: Add a new label to an existing group
- *     description: Adds a new label to an existing group in a product.
+ * /products/{productname}/groups/{groupname}/subgroups/{subgroupname}:
+ *   put:
+ *     summary: Update a subgroup's name
+ *     description: Updates the name of an existing subgroup.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -383,6 +422,12 @@ router.put("/products/:productname/groups/:groupname", async (req, res) => {
  *         schema:
  *           type: string
  *         description: Name of the group
+ *       - in: path
+ *         name: subgroupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Current name of the subgroup
  *     requestBody:
  *       required: true
  *       content:
@@ -390,68 +435,47 @@ router.put("/products/:productname/groups/:groupname", async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               label:
+ *               newSubgroupName:
  *                 type: string
- *                 example: "LABEL_NAME_SAMPLE"
- *               description:
- *                 type: string
- *                 example: "LABEL_DESCRIPTION_SAMPLE"
- *               displayName:
- *                 type: string
- *                 example: "LABEL_DISPLAY_NAME_SAMPLE"
+ *                 example: "Updated Subgroup Name"
  *     responses:
- *       201:
- *         description: Label added successfully
+ *       200:
+ *         description: Subgroup name updated successfully
  *       400:
  *         description: Invalid request body
  *       404:
- *         description: Product or group not found
+ *         description: Product, group or subgroup not found
  *       500:
  *         description: Server error
  */
-router.put("/products/:productname/groups/:groupname/labels/:label", async (req, res) => {
+router.put("/products/:productname/groups/:groupname/subgroups/:subgroupname", async (req, res) => {
     try {
-        const { newLabelName, newDescription, newDisplayName } = req.body;
-        if (!newLabelName && !newDescription && !newDisplayName) {
-            return res.status(400).json({ message: "newLabelName, newDescription, or newDisplayName is required" });
-        }
+        const { newSubgroupName } = req.body;
+        if (!newSubgroupName) return res.status(400).json({ message: "newSubgroupName is required" });
 
         const product = await Product.findOne({ productname: req.params.productname });
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const group = product.groups.find((g) => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
         if (!group) return res.status(404).json({ message: "Group not found" });
 
-        const labelToUpdate = group.labels.find((l) => l.label.toLowerCase() === req.params.label.toLowerCase());
-        if (!labelToUpdate) return res.status(404).json({ message: "Label not found" });
+        const subgroup = group.subgroups.find(s => s.subgroupname.toLowerCase() === req.params.subgroupname.toLowerCase());
+        if (!subgroup) return res.status(404).json({ message: "Subgroup not found" });
 
-  
-        if (newLabelName) {
-            labelToUpdate.label = newLabelName;
-        }
-
-    
-        if (newDescription) {
-            labelToUpdate.description = newDescription;
-        }
-
-
-        if (newDisplayName) {
-            labelToUpdate.displayName = newDisplayName;
-        }
-
+        subgroup.subgroupname = newSubgroupName;
         await product.save();
-        res.status(200).json({ message: "Label name, description, and/or displayName updated successfully", product });
+        res.status(200).json({ message: "Subgroup name updated successfully", product });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 /**
  * @swagger
- * /products/{productname}/groups/{groupname}/labels/{label}:
- *   delete:
- *     summary: Delete a label from a group
- *     description: Deletes a specific label from a group within a product.
+ * /products/{productname}/groups/{groupname}/subgroups/{subgroupname}/labels/{label}:
+ *   put:
+ *     summary: Update a label in a subgroup
+ *     description: Updates a specific label in a subgroup.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -464,7 +488,97 @@ router.put("/products/:productname/groups/:groupname/labels/:label", async (req,
  *         required: true
  *         schema:
  *           type: string
- *         description: Name of the group containing the label
+ *         description: Name of the group
+ *       - in: path
+ *         name: subgroupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the subgroup
+ *       - in: path
+ *         name: label
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Current name of the label
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newLabelName:
+ *                 type: string
+ *               newDescription:
+ *                 type: string
+ *               newDisplayName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Label updated successfully
+ *       400:
+ *         description: Invalid request body
+ *       404:
+ *         description: Product, group, subgroup or label not found
+ *       500:
+ *         description: Server error
+ */
+router.put("/products/:productname/groups/:groupname/subgroups/:subgroupname/labels/:label", async (req, res) => {
+    try {
+        const { newLabelName, newDescription, newDisplayName } = req.body;
+        if (!newLabelName && !newDescription && !newDisplayName) {
+            return res.status(400).json({ message: "At least one field to update is required" });
+        }
+
+        const product = await Product.findOne({ productname: req.params.productname });
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        if (!group) return res.status(404).json({ message: "Group not found" });
+
+        const subgroup = group.subgroups.find(s => s.subgroupname.toLowerCase() === req.params.subgroupname.toLowerCase());
+        if (!subgroup) return res.status(404).json({ message: "Subgroup not found" });
+
+        const label = subgroup.labels.find(l => l.label.toLowerCase() === req.params.label.toLowerCase());
+        if (!label) return res.status(404).json({ message: "Label not found" });
+
+        if (newLabelName) label.label = newLabelName;
+        if (newDescription) label.description = newDescription;
+        if (newDisplayName) label.displayName = newDisplayName;
+
+        await product.save();
+        res.status(200).json({ message: "Label updated successfully", product });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /products/{productname}/groups/{groupname}/subgroups/{subgroupname}/labels/{label}:
+ *   delete:
+ *     summary: Delete a label from a subgroup
+ *     description: Deletes a specific label from a subgroup.
+ *     parameters:
+ *       - in: path
+ *         name: productname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the product
+ *       - in: path
+ *         name: groupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the group
+ *       - in: path
+ *         name: subgroupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the subgroup
  *       - in: path
  *         name: label
  *         required: true
@@ -475,49 +589,90 @@ router.put("/products/:productname/groups/:groupname/labels/:label", async (req,
  *       200:
  *         description: Label deleted successfully
  *       404:
- *         description: Product, group, or label not found
+ *         description: Product, group, subgroup or label not found
  *       500:
  *         description: Server error
  */
-router.delete("/products/:productname/groups/:groupname/labels/:label", async (req, res) => {
+router.delete("/products/:productname/groups/:groupname/subgroups/:subgroupname/labels/:label", async (req, res) => {
     try {
-        const { productname, groupname, label } = req.params;
+        const product = await Product.findOne({ productname: req.params.productname });
+        if (!product) return res.status(404).json({ message: "Product not found" });
 
-        
-        const product = await Product.findOne({ productname });
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        if (!group) return res.status(404).json({ message: "Group not found" });
 
-        
-        const group = product.groups.find((g) => g.groupname.toLowerCase() === groupname.toLowerCase());
-        if (!group) {
-            return res.status(404).json({ message: "Group not found" });
-        }
+        const subgroup = group.subgroups.find(s => s.subgroupname.toLowerCase() === req.params.subgroupname.toLowerCase());
+        if (!subgroup) return res.status(404).json({ message: "Subgroup not found" });
 
-   
-        const labelIndex = group.labels.findIndex((l) => l.label.toLowerCase() === label.toLowerCase());
-        if (labelIndex === -1) {
-            return res.status(404).json({ message: "Label not found" });
-        }
+        const labelIndex = subgroup.labels.findIndex(l => l.label.toLowerCase() === req.params.label.toLowerCase());
+        if (labelIndex === -1) return res.status(404).json({ message: "Label not found" });
 
-      
-        group.labels.splice(labelIndex, 1);
-
-    
+        subgroup.labels.splice(labelIndex, 1);
         await product.save();
-
         res.status(200).json({ message: "Label deleted successfully", product });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
+/**
+ * @swagger
+ * /products/{productname}/groups/{groupname}/subgroups/{subgroupname}:
+ *   delete:
+ *     summary: Delete a subgroup from a group
+ *     description: Deletes a specific subgroup from a group.
+ *     parameters:
+ *       - in: path
+ *         name: productname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the product
+ *       - in: path
+ *         name: groupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the group
+ *       - in: path
+ *         name: subgroupname
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the subgroup to delete
+ *     responses:
+ *       200:
+ *         description: Subgroup deleted successfully
+ *       404:
+ *         description: Product, group or subgroup not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/products/:productname/groups/:groupname/subgroups/:subgroupname", async (req, res) => {
+    try {
+        const product = await Product.findOne({ productname: req.params.productname });
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        const group = product.groups.find(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
+        if (!group) return res.status(404).json({ message: "Group not found" });
+
+        const subgroupIndex = group.subgroups.findIndex(s => s.subgroupname.toLowerCase() === req.params.subgroupname.toLowerCase());
+        if (subgroupIndex === -1) return res.status(404).json({ message: "Subgroup not found" });
+
+        group.subgroups.splice(subgroupIndex, 1);
+        await product.save();
+        res.status(200).json({ message: "Subgroup deleted successfully", product });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 /**
  * @swagger
  * /products/{productname}/groups/{groupname}:
  *   delete:
  *     summary: Delete a group from a product
- *     description: Removes a specified group from a product.
+ *     description: Deletes a specific group from a product.
  *     parameters:
  *       - in: path
  *         name: productname
@@ -541,23 +696,18 @@ router.delete("/products/:productname/groups/:groupname/labels/:label", async (r
  */
 router.delete("/products/:productname/groups/:groupname", async (req, res) => {
     try {
-        const { productname, groupname } = req.params;
-
-        const product = await Product.findOne({ productname });
+        const product = await Product.findOne({ productname: req.params.productname });
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const groupIndex = product.groups.findIndex(g => g.groupname.toLowerCase() === groupname.toLowerCase());
+        const groupIndex = product.groups.findIndex(g => g.groupname.toLowerCase() === req.params.groupname.toLowerCase());
         if (groupIndex === -1) return res.status(404).json({ message: "Group not found" });
 
         product.groups.splice(groupIndex, 1);
         await product.save();
-
         res.status(200).json({ message: "Group deleted successfully", product });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
-
-
 
 module.exports = router;
